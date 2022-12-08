@@ -34,7 +34,7 @@ const checkGithubUser = async (personal_access_token) => {
   return response
 }
 
-app.get('/auth', async (req, res) => {
+app.post('/auth', async (req, res) => {
 
   // make the request to the API
   // and check if the response is valid:
