@@ -1,25 +1,18 @@
 `https://zk-oracle-2qz4wkdima-uc.a.run.app/auth`
 
-The oracle takes in a json with reddit credentials:
+The oracle takes in a json with [Github personal access token](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token):
 
 ```
-// username & password are reddit login credentials
-// clientid & clientsecret reddit app login data
 {
-  "username": "ioWxss6",
-  "password": "KJHIASd875as6da",
-  "clientid": "LGObhaoiF614kjhads-j9a7dsG",
-  "clientsecret": "KJhkaghdaf7ghkJHgs8alwerkhfs76"
+    "personal_access_token": "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7Kd"
 }
 ```
 
-![example](https://i.imgur.com/fkPvlOp.png)
-
-The oracle outputs a json, where `signature` and `publicKey` are part of predifined [response format](https://docs.minaprotocol.com/zkapps/tutorials/oracle#response-format) and `data.isRedditUser` takes a value of `0` if the proof fails and `1` if it succeedes:
+The oracle outputs a json, where `signature` and `publicKey` are part of predifined [response format](https://docs.minaprotocol.com/zkapps/tutorials/oracle#response-format) and `data.isValidUser` takes a value of `0` if the proof fails and `1` if it succeedes:
 ```
 {
     "data": {
-        "isRedditUser": "0"
+        "isValidUser": "0"
     },
     "signature": {
         "r": "14418804800898797628311357849207925474173906816897929354543906229995884485202",
@@ -29,6 +22,4 @@ The oracle outputs a json, where `signature` and `publicKey` are part of predifi
 }
 ```
 
-You can get `clientid` and `clientsecret` by creating a [reddit app here](https://www.reddit.com/prefs/apps) (see img below).
-
-![example](https://i.imgur.com/Kkzym9a.png)
+After using this oracle, do not forget to revoke / delete the `personal_access_token` used.

@@ -13,65 +13,49 @@ const PORT = 8080
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 console.log(PRIVATE_KEY)
 
-const checkRedditAccount = async (params) => {
+const checkGithubUser = async (personal_access_token) => {
 
-  // redit auth:
-  // https://gist.github.com/jpeckham/6555a410c4f29731b6bd41957dc196ad
-  // https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example
-  const url = 'https://www.reddit.com/api/v1/access_token'
-
-  // the following is from reddit's user app
-  // clientid: username
-  // clientsecret: password
-  const auth_details = {
-    username: params.clientid,
-    password: params.clientsecret,
+  // https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28
+  const url = 'https://api.github.com/user'
+  const headers_ = {
+    'Accept': 'application/vnd.github+json',
+    'Authorization': `Bearer ${personal_access_token}`,
+    'X-GitHub-Api-Version': '2022-11-28'
   }
-
-  // the following is reddit login details
-  const user_details = {
-    grant_type: 'password',
-    username: params.username,
-    password: params.password
-  }
-
   let response = await axios.request({
+    method: 'get',
     url: url,
-    method: 'post',
-    params: user_details,
-    auth: auth_details
+    headers: headers_,
   }).catch(err => {
     // this is not nice at all but will do for now
-    return {
-      data: { access_token: false }
-    }
+    return { data: {} }
   })
 
   return response
 }
 
-app.post('/auth', async (req, res) => {
+app.get('/auth', async (req, res) => {
 
-  // make the request to the reddit API
+  // make the request to the API
   // and check if the response is valid:
-  // INVALID - data: { access_token: 'kjhskjfhdskjfhsdkjfhsdf' }
-  // VALID - data: { access_token: false }
-  const response = await checkRedditAccount(req.body)
-  const isRedditUser = response.data.access_token ? true : false
+  // INVALID - { data: {} }
+  // VALID   - { data: { id: 10008368,, ... }
+  const personal_access_token = req.body.personal_access_token
+  const response = await checkGithubUser(personal_access_token)
+  const isValidUser = response.data.id ? true : false
 
   // now the snarkyjs magick
   await isReady
-  const isRedditUser_ = Field(isRedditUser)
-  // TODO: lets rethink this, what do we need?
-  // maybe account publicKey? This will be emitted in an event
-  // const usernameHash = CircuitString.fromString(req.body.username).hash()
+  const isValidUser_ = Field(isValidUser)
+  // TODO: lets rethink this, does signature with data
+  // as simple as this is enough for security..?
   const privateKey = PrivateKey.fromBase58(PRIVATE_KEY)
   const publicKey = privateKey.toPublicKey()
-  const signature = Signature.create(privateKey, [isRedditUser_])
+  const signature = Signature.create(privateKey, [isValidUser_])
 
   res.json({
     data: {
-      isRedditUser: isRedditUser_,
+      isValidUser: isValidUser_,
     },
     signature: signature,
     publicKey: publicKey,
