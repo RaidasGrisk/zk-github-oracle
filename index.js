@@ -2,11 +2,13 @@ const { isReady, PrivateKey, Field, Signature, CircuitString } = require("snarky
 const express = require('express')
 const bodyParser = require('body-parser')
 const axios = require('axios')
+const cors = require('cors')
 require('dotenv').config()
 
 // express config
 const app = express()
 app.use(bodyParser.json())
+app.use(cors({ origin: '*' }))
 const PORT = 8080
 
 // mina config
