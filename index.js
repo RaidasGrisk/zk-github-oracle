@@ -1,4 +1,13 @@
-const { isReady, PrivateKey, Field, Signature, CircuitString } = require("snarkyjs")
+const {
+  isReady,
+  PrivateKey,
+  Field,
+  Signature,
+  Int64,
+  CircuitString,
+  Bool,
+} = require("snarkyjs")
+
 const express = require('express')
 const bodyParser = require('body-parser')
 const axios = require('axios')
@@ -38,27 +47,53 @@ const checkGithubUser = async (personal_access_token) => {
 
 app.post('/auth', async (req, res) => {
 
-  // make the request to the API
-  // and check if the response is valid:
-  // INVALID - { data: {} }
-  // VALID   - { data: { id: 10008368,, ... }
+  // make the request to Github API
   const personal_access_token = req.body.personal_access_token
   const response = await checkGithubUser(personal_access_token)
-  const isValidUser = response.data.id ? true : false
 
   // now the snarkyjs magick
   await isReady
-  const isValidUser_ = Field(isValidUser)
-  // TODO: lets rethink this, does signature with data
-  // as simple as this is enough for security..?
+
+  // Github's API response in a form of a JSON.
+  // It needs to be properly encoded into circuit values.
+  // Ideally, it would do the following conversion:
+  //   string => CircuitString
+  //   number => Int64
+  //   boolean => Bool
+
+  // But it will be inconveniant later on as encoded values will
+  // have to be signed, and Signature.create accepts []Field only.
+  // So it is inconveniant to have [] CircuitString | Int64 | Bool
+
+  // Also how to properly encode string to Fields?
+  // string -> CircuitString -> toFields() ? not convenient.
+
+  // Therefore, if possible, convert every value to Field
+  // else, just skip it until I figure out how to solve this.
+  const data = response.data
+  const keys = Object.keys(data)
+  const response_ = {}
+
+  for (let key of keys) {
+    if (typeof data[key] == 'string') {
+      // response_[key] = CircuitString.fromString(data[key]).toFields()
+    } else if (typeof data[key] == 'number') {
+      response_[key] = Field(data[key])
+    } else if (typeof data[key] == 'boolean') {
+      response_[key] = Field(data[key])
+    }
+  }
+
+  // create a signature
   const privateKey = PrivateKey.fromBase58(PRIVATE_KEY)
   const publicKey = privateKey.toPublicKey()
-  const signature = Signature.create(privateKey, [isValidUser_])
+  const signature = Signature.create(privateKey, Object.values(response_))
 
+  // not the question is, can a smart contract consume this
+  // whole json as an arg, instead of each separate value?
+  // @method verify(response_: json?) ..?
   res.json({
-    data: {
-      isValidUser: isValidUser_,
-    },
+    data: response_,
     signature: signature,
     publicKey: publicKey,
   })
